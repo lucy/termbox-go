@@ -8,7 +8,7 @@ type (
 	EventType uint8
 	Modifier  uint8
 	Key       uint16
-	Attribute uint16
+	Attribute uint32
 )
 
 // This type represents a termbox event. The 'Mod', 'Key' and 'Ch' fields are
@@ -118,8 +118,7 @@ const (
 // using bitwise OR ('|'). Although, colors cannot be combined. But you can
 // combine attributes and a single color.
 const (
-	ColorDefault Attribute = iota
-	ColorBlack
+	ColorBlack = iota
 	ColorRed
 	ColorGreen
 	ColorYellow
@@ -130,7 +129,8 @@ const (
 )
 
 const (
-	AttrBold Attribute = 1 << (iota + 4)
+	ColorDefault Attribute = 1 << (iota + 8)
+	AttrBold
 	AttrUnderline
 	AttrReverse
 )
