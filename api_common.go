@@ -118,7 +118,7 @@ const (
 // using bitwise OR ('|'). Although, colors cannot be combined. But you can
 // combine attributes and a single color.
 const (
-	ColorBlack = iota
+	ColorBlack Attribute = iota
 	ColorRed
 	ColorGreen
 	ColorYellow
