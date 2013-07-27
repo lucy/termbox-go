@@ -93,7 +93,7 @@ func write_sgr_bg(a Attribute) {
 func write_sgr(fg, bg Attribute) {
 	outbuf.WriteString("\033[38;5;")
 	outbuf.Write(strconv.AppendUint(intbuf, uint64(fg), 10))
-	outbuf.WriteString("\033[48;5;")
+	outbuf.WriteString(";48;5;")
 	outbuf.Write(strconv.AppendUint(intbuf, uint64(bg), 10))
 	outbuf.WriteString("m")
 }
