@@ -46,6 +46,18 @@ type (
 	window_buffer_size_record struct {
 		size coord
 	}
+	mouse_event_record struct {
+		mouse_pos         coord
+		button_state      dword
+		control_key_state dword
+		event_flags       dword
+	}
+)
+
+const (
+	mouse_lmb = 0x1
+	mouse_rmb = 0x2
+	mouse_mmb = 0x4 | 0x8 | 0x10
 )
 
 func (this coord) uintptr() uintptr {
@@ -392,7 +404,7 @@ func prepare_diff_messages() {
 				beg_i = len(charsbuf)
 			}
 			attr, char := cell_to_char_info(*back)
-			if w == 2 && x == front_buffer.width - 1 {
+			if w == 2 && x == front_buffer.width-1 {
 				// not enough space for a 2-cells rune,
 				// let's just put a space in there
 				front.Ch = ' '
@@ -509,7 +521,7 @@ func key_event_record_to_event(r *key_event_record) (Event, bool) {
 	}
 
 	e := Event{Type: EventKey}
-	if input_mode == InputAlt {
+	if input_mode & InputAlt != 0 {
 		if alt_mode_esc {
 			e.Mod = ModAlt
 			alt_mode_esc = false
@@ -587,10 +599,10 @@ func key_event_record_to_event(r *key_event_record) (Event, bool) {
 		case vk_enter:
 			e.Key = KeyEnter
 		case vk_esc:
-			switch input_mode {
-			case InputEsc:
+			switch {
+			case input_mode & InputEsc != 0:
 				e.Key = KeyEsc
-			case InputAlt:
+			case input_mode & InputAlt != 0:
 				alt_mode_esc = true
 				return Event{}, false
 			}
@@ -612,7 +624,7 @@ func key_event_record_to_event(r *key_event_record) (Event, bool) {
 	if ctrlpressed {
 		if Key(r.unicode_char) >= KeyCtrlA && Key(r.unicode_char) <= KeyCtrlRsqBracket {
 			e.Key = Key(r.unicode_char)
-			if input_mode == InputAlt && e.Key == KeyEsc {
+			if input_mode & InputAlt != 0 && e.Key == KeyEsc {
 				alt_mode_esc = true
 				return Event{}, false
 			}
@@ -624,7 +636,7 @@ func key_event_record_to_event(r *key_event_record) (Event, bool) {
 			e.Key = KeyCtrl2
 			return e, true
 		case 51:
-			if input_mode == InputAlt {
+			if input_mode & InputAlt != 0 {
 				alt_mode_esc = true
 				return Event{}, false
 			}
@@ -657,6 +669,8 @@ func key_event_record_to_event(r *key_event_record) (Event, bool) {
 func input_event_producer() {
 	var r input_record
 	var err error
+	var last_button Key
+	var last_state = dword(0)
 	for {
 		err = read_console_input(in, &r)
 		if err != nil {
@@ -678,6 +692,34 @@ func input_event_producer() {
 				Type:   EventResize,
 				Width:  int(sr.size.x),
 				Height: int(sr.size.y),
+			}
+		case mouse_event:
+			mr := *(*mouse_event_record)(unsafe.Pointer(&r.event))
+
+			// single or double click
+			switch mr.event_flags {
+			case 0:
+				cur_state := mr.button_state
+				switch {
+				case last_state&mouse_lmb == 0 && cur_state&mouse_lmb != 0:
+					last_button = MouseLeft
+				case last_state&mouse_rmb == 0 && cur_state&mouse_rmb != 0:
+					last_button = MouseRight
+				case last_state&mouse_mmb == 0 && cur_state&mouse_mmb != 0:
+					last_button = MouseMiddle
+				default:
+					last_state = cur_state
+					continue
+				}
+				last_state = cur_state
+				fallthrough
+			case 2:
+				input_comm <- Event{
+					Type:   EventMouse,
+					Key:    last_button,
+					MouseX: int(mr.mouse_pos.x),
+					MouseY: int(mr.mouse_pos.y),
+				}
 			}
 		}
 	}

@@ -116,6 +116,7 @@ func Close() {
 	out.WriteString(funcs[t_clear_screen])
 	out.WriteString(funcs[t_exit_ca])
 	out.WriteString(funcs[t_exit_keypad])
+	out.WriteString(funcs[t_exit_mouse])
 	tcsetattr(out.Fd(), &orig_tios)
 
 	out.Close()
@@ -162,7 +163,7 @@ func Flush() error {
 			*front = *back
 			send_attr(back.Fg, back.Bg)
 
-			if w == 2 && x == front_buffer.width - 1 {
+			if w == 2 && x == front_buffer.width-1 {
 				// there's not enough space for 2-cells rune,
 				// let's just put a space in there
 				send_char(x, y, ' ')
@@ -275,16 +276,26 @@ func Clear(fg, bg Attribute) error {
 // Sets termbox input mode. Termbox has two input modes:
 //
 // 1. Esc input mode. When ESC sequence is in the buffer and it doesn't match
-// any known sequence. ESC means KeyEsc.
+// any known sequence. ESC means KeyEsc. This is the default input mode.
 //
 // 2. Alt input mode. When ESC sequence is in the buffer and it doesn't match
 // any known sequence. ESC enables ModAlt modifier for the next keyboard event.
 //
+// Both input modes can be OR'ed with Mouse mode. Setting Mouse mode bit up will
+// enable mouse button click events.
+//
 // If 'mode' is InputCurrent, returns the current input mode. See also Input*
 // constants.
 func SetInputMode(mode InputMode) InputMode {
-	if mode != InputCurrent {
-		input_mode = mode
+	if mode == InputCurrent {
+		return input_mode
 	}
+	if mode & InputMouse != 0 {
+		out.WriteString(funcs[t_enter_mouse])
+	} else {
+		out.WriteString(funcs[t_exit_mouse])
+	}
+
+	input_mode = mode
 	return input_mode
 }

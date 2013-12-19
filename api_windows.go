@@ -35,12 +35,12 @@ func Init() error {
 		return err
 	}
 
-	w, h := get_win_size(out)
 	orig_screen = out
 	out, err = create_console_screen_buffer()
 	if err != nil {
 		return err
 	}
+	w, h := get_win_size(out)
 
 	err = set_console_screen_buffer_size(out, coord{short(w), short(h)})
 	if err != nil {
@@ -75,6 +75,7 @@ func Close() {
 	// we ignore errors here, because we can't really do anything about them
 	set_console_mode(in, orig_mode)
 	set_console_active_screen_buffer(orig_screen)
+	syscall.Close(out)
 }
 
 // Synchronizes the internal back buffer with the terminal.
@@ -154,16 +155,32 @@ func Clear(fg, bg Attribute) error {
 // Sets termbox input mode. Termbox has two input modes:
 //
 // 1. Esc input mode. When ESC sequence is in the buffer and it doesn't match
-// any known sequence. ESC means KeyEsc.
+// any known sequence. ESC means KeyEsc. This is the default input mode.
 //
 // 2. Alt input mode. When ESC sequence is in the buffer and it doesn't match
 // any known sequence. ESC enables ModAlt modifier for the next keyboard event.
 //
+// Both input modes can be OR'ed with Mouse mode. Setting Mouse mode bit up will
+// enable mouse button click events.
+//
 // If 'mode' is InputCurrent, returns the current input mode. See also Input*
 // constants.
 func SetInputMode(mode InputMode) InputMode {
-	if mode != InputCurrent {
-		input_mode = mode
+	if mode == InputCurrent {
+		return input_mode
 	}
+	if mode & InputMouse != 0 {
+		err := set_console_mode(in, enable_window_input|enable_mouse_input)
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		err := set_console_mode(in, enable_window_input)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	input_mode = mode
 	return input_mode
 }
