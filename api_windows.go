@@ -1,6 +1,8 @@
 package termbox
 
-import "syscall"
+import (
+	"syscall"
+)
 
 // public API
 
@@ -31,9 +33,7 @@ func Init() error {
 	}
 
 	err = set_console_mode(in, enable_window_input)
-	if err != nil {
-		return err
-	}
+	consolewin = err == nil
 
 	orig_screen = out
 	out, err = create_console_screen_buffer()
@@ -169,15 +169,17 @@ func SetInputMode(mode InputMode) InputMode {
 	if mode == InputCurrent {
 		return input_mode
 	}
-	if mode&InputMouse != 0 {
-		err := set_console_mode(in, enable_window_input|enable_mouse_input)
-		if err != nil {
-			panic(err)
-		}
-	} else {
-		err := set_console_mode(in, enable_window_input)
-		if err != nil {
-			panic(err)
+	if consolewin {
+		if mode&InputMouse != 0 {
+			err := set_console_mode(in, enable_window_input|enable_mouse_input)
+			if err != nil {
+				panic(err)
+			}
+		} else {
+			err := set_console_mode(in, enable_window_input)
+			if err != nil {
+				panic(err)
+			}
 		}
 	}
 

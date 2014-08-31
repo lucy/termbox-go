@@ -2,6 +2,7 @@
 
 package termbox
 
+import "github.com/mattn/go-runewidth"
 import "fmt"
 import "os"
 import "os/signal"
@@ -104,6 +105,7 @@ func Init() error {
 		}
 	}()
 
+	IsInit = true
 	return nil
 }
 
@@ -136,6 +138,7 @@ func Close() {
 	cursor_y = cursor_hidden
 	foreground = ColorDefault
 	background = ColorDefault
+	IsInit = false
 }
 
 // Synchronizes the internal back buffer with the terminal.
@@ -155,7 +158,7 @@ func Flush() error {
 			if back.Ch < ' ' {
 				back.Ch = ' '
 			}
-			w := rune_width(back.Ch)
+			w := runewidth.RuneWidth(back.Ch)
 			if *back == *front {
 				x += w
 				continue

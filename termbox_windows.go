@@ -3,6 +3,7 @@ package termbox
 import "syscall"
 import "unsafe"
 import "unicode/utf16"
+import "github.com/mattn/go-runewidth"
 
 type (
 	wchar uint16
@@ -288,6 +289,7 @@ var (
 	beg_i        = -1
 	input_comm   = make(chan Event)
 	alt_mode_esc = false
+	consolewin   = false
 
 	// these ones just to prevent heap allocs at all costs
 	tmp_info  console_screen_buffer_info
@@ -381,7 +383,10 @@ func prepare_diff_messages() {
 			cell_offset := line_offset + x
 			back := &back_buffer.cells[cell_offset]
 			front := &front_buffer.cells[cell_offset]
-			w := rune_width(back.Ch)
+			w := runewidth.RuneWidth(back.Ch)
+			if w == 0 {
+				w = 1
+			}
 			if *back == *front {
 				if beg_x != -1 {
 					// there is a sequence in progress,

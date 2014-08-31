@@ -35,6 +35,11 @@ type Cell struct {
 	Bg Attribute
 }
 
+// To know if termbox has been initialized or not
+var (
+	IsInit bool = false
+)
+
 // Key constants, see Event.Key field.
 const (
 	KeyF1 Key = 0xFFFF - iota
@@ -119,9 +124,8 @@ const (
 	ModAlt Modifier = 0x01
 )
 
-// Cell attributes, it is possible to use multiple attributes by combining them
-// using bitwise OR ('|'). Although, colors cannot be combined. But you can
-// combine attributes and a single color.
+// Cell colors, you can combine a color with multiple attributes using bitwise
+// OR ('|').
 const (
 	ColorBlack Attribute = iota
 	ColorRed
@@ -133,6 +137,14 @@ const (
 	ColorWhite
 )
 
+// Cell attributes, it is possible to use multiple attributes by combining them
+// using bitwise OR ('|'). Although, colors cannot be combined. But you can
+// combine attributes and a single color.
+//
+// It's worth mentioning that some platforms don't support certain attibutes.
+// For example windows console doesn't support AttrUnderline. And on some
+// terminals applying AttrBold to background may result in blinking text. Use
+// them with caution and test your code on various terminals.
 const (
 	ColorDefault Attribute = 1 << (iota + 8)
 	AttrBold
